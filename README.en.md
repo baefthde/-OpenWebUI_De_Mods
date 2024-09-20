@@ -1,7 +1,7 @@
 
 # Project [OpenWebUI_De_Mods](https://github.com/baefthde/OpenWebUI_De_Mods/)
 
-## Mehrsprachige README (Multilanguage README) 
+## Multilanguage README
 [![de](https://img.shields.io/badge/lang-de-green.svg)](https://github.com/baefthde/OpenWebUI_De_Mods/blob/master/README.md)
 
 Adapted change for German use.
