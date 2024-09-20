@@ -1,1 +1,199 @@
-[{"id":"4dfa8651-b363-41f2-8c97-a36b0960a97a","userId":"4b937569-583a-4bb7-ba4d-af3970bb1f96","tool":{"id":"wetter_de","name":"Wetter","meta":{"description":"Holen Sie sich das Wetter für eine bestimmte Stadt. Erfordert keinen API-Schlüssel.","manifest":{"title":"Wetter Deutsch","author":"baefthde","author_url":"https://github.com/open-webui","funding_url":"https://github.com/open-webui","version":"0.1.1"}},"content":"\"\"\"\ntitle: Wetter Deutsch\nauthor: baefthde\nauthor_url: https://github.com/open-webui\nfunding_url: https://github.com/open-webui\nversion: 0.1.1\n\"\"\"\n\nimport os\nimport requests\nimport urllib.parse\nimport datetime\n\n\ndef get_city_info(city: str):\n    url = f\"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(city)}&count=1&language=de&format=json\"\n    response = requests.get(url)\n\n    if response.status_code == 200:\n        try:\n            data = response.json()[\"results\"][0]\n            return data[\"latitude\"], data[\"longitude\"], data[\"timezone\"]\n        except (KeyError, IndexError):\n            print(f\"City '{city}' not found\")\n            return None\n    else:\n        print(f\"Daten für die Stadt konnten nicht abgerufen werden '{city}': {response.status_code}\")\n        return None\n\n\nwmo_weather_codes = {\n    \"0\": \"Klarer Himmel\",\n    \"1\": \"Überwiegend klar, teilweise bewölkt und bewölkt\",\n    \"2\": \"Überwiegend klar, teilweise bewölkt und bewölkt\",\n    \"3\": \"Überwiegend klar, teilweise bewölkt und bewölkt\",\n    \"45\": \"Nebel und Raureifnebel\",\n    \"48\": \"Nebel und Raureifnebel\",\n    \"51\": \"Nieselregen: Leichte, mäßige und dichte Intensität\",\n    \"53\": \"Nieselregen: Leichte, mäßige und dichte Intensität\",\n    \"55\": \"Nieselregen: Leichte, mäßige und dichte Intensität\",\n    \"56\": \"Eisiger Nieselregen: Leichte und dichte Intensität\",\n    \"57\": \"Eisiger Nieselregen: Leichte und dichte Intensität\",\n    \"61\": \"Regen: Leichte, mäßige und starke Intensität\",\n    \"63\": \"Regen: Leichte, mäßige und starke Intensität\",\n    \"65\": \"Regen: Leichte, mäßige und starke Intensität\",\n    \"66\": \"Gefrierender Regen: Leichte und starke Intensität\",\n    \"67\": \"Gefrierender Regen: Leichte und starke Intensität\",\n    \"71\": \"Schneefall: leichte, mäßige und starke Intensität\",\n    \"73\": \"Schneefall: leichte, mäßige und starke Intensität\",\n    \"75\": \"Schneefall: leichte, mäßige und starke Intensität\",\n    \"77\": \"Schneekörner\",\n    \"80\": \"Regenschauer: Leicht, mäßig und heftig\",\n    \"81\": \"Regenschauer: Leicht, mäßig und heftig\",\n    \"82\": \"Regenschauer: Leicht, mäßig und heftig\",\n    \"85\": \"Leichte und heftige Schneeschauer\",\n    \"86\": \"Leichte und heftige Schneeschauer\",\n    \"95\": \"Gewitter: Leicht oder mäßig\",\n    \"96\": \"Gewitter mit leichtem und starkem Hagel\",\n    \"99\": \"Gewitter mit leichtem und starkem Hagel\",\n}\n\n\ndef fetch_weather_data(base_url, params):\n    try:\n        response = requests.get(base_url, params=params)\n        response.raise_for_status()\n        data = response.json()\n        if \"error\" in data:\n            return f\"Fehler beim Abrufen der Wetterdaten: {data['message']}\"\n        return data\n    except requests.RequestException as e:\n        return f\"Fehler beim Abrufen der Wetterdaten: {str(e)}\"\n\n\ndef format_date(date_str, date_format=\"%Y-%m-%dT%H:%M\", output_format=\"%I:%M %p\"):\n    dt = datetime.datetime.strptime(date_str, date_format)\n    return dt.strftime(output_format)\n\n\nclass Tools:\n    def __init__(self):\n        self.citation = True\n        pass\n\n    def get_future_weather_week(self, city: str) -> str:\n        \"\"\"\n        Holen Sie sich das Wetter für die nächste Woche für eine bestimmte Stadt.\n        :param city: Der Name der Stadt, für die das Wetter ermittelt werden soll.\n        :return: Die aktuellen Wetterinformationen oder eine Fehlermeldung.        \n        \"\"\"\n        if not city:\n            return \"\"\"Der Standort wurde vom Benutzer nicht definiert, daher kann das Wetter nicht bestimmt werden.\"\"\"\n\n        city_info = get_city_info(city)\n        if not city_info:\n            return \"\"\"Fehler beim Abrufen der Wetterdaten\"\"\"\n\n        lat, lng, tmzone = city_info\n        print(f\"Latitude: {lat}, Longitude: {lng}, Timezone: {tmzone}\")\n\n        base_url = \"https://api.open-meteo.com/v1/forecast\"\n        params = {\n            \"latitude\": lat,\n            \"longitude\": lng,\n            \"daily\": [\n                \"weather_code\",\n                \"temperature_2m_max\",\n                \"temperature_2m_min\",\n                \"uv_index_max\",\n                \"precipitation_probability_max\",\n                \"wind_speed_10m_max\",\n            ],\n            \"current\": \"temperature_2m\",\n            \"timezone\": tmzone,\n            \"temperature_unit\": \"celsius\",\n            \"wind_speed_unit\": \"kmh\",\n            \"precipitation_unit\": \"mm\",\n            \"forecast_days\": 7,\n        }\n\n        data = fetch_weather_data(base_url, params)\n        if isinstance(data, str):\n            return data\n\n        formatted_timestamp = format_date(data[\"current\"][\"time\"])\n        data[\"daily\"][\"time\"][0] += \" (Today)\"\n\n        mapped_data = {\n            date: {\n                \"weather_description\": wmo_weather_codes[\n                    str(data[\"daily\"][\"weather_code\"][i])\n                ],\n                \"temperature_max_min\": f'{data[\"daily\"][\"temperature_2m_max\"][i]} {data[\"daily_units\"][\"temperature_2m_max\"]} / {data[\"daily\"][\"temperature_2m_min\"][i]} {data[\"daily_units\"][\"temperature_2m_min\"]}',\n                \"uv_index_max\": f'{data[\"daily\"][\"uv_index_max\"][i]} {data[\"daily_units\"][\"uv_index_max\"]}',\n                \"precipitation_probability_max\": f'{data[\"daily\"][\"precipitation_probability_max\"][i]} {data[\"daily_units\"][\"precipitation_probability_max\"]}',\n                \"max_wind_speed\": f'{data[\"daily\"][\"wind_speed_10m_max\"][i]} {data[\"daily_units\"][\"wind_speed_10m_max\"]}',\n            }\n            for i, date in enumerate(data[\"daily\"][\"time\"])\n        }\n\n        return f\"\"\"\nGeben Sie eine Wetterbeschreibung für die nächste Woche an und geben Sie den Zeitpunkt der Daten an ({formatted_timestamp} {data['timezone_abbreviation']} in {city}):\nZeigen Sie für jeden dieser Tage ein Standard-Tabellenlayout an: {mapped_data}\nFügen Sie am Ende eine Zusammenfassung der Woche in einem Satz hinzu.\"\"\"\n\n    def get_current_weather(self, city: str) -> str:\n        \"\"\"\n        Holen Sie sich das aktuelle Wetter für eine bestimmte Stadt.\n        :param city: Der Name der Stadt, für die das Wetter ermittelt werden soll.\n        :return: Die aktuellen Wetterinformationen oder eine Fehlermeldung.\n        \"\"\"\n        if not city:\n            return \"\"\"Der Standort wurde vom Benutzer nicht definiert, daher kann das Wetter nicht bestimmt werden.\"\"\"\n\n        city_info = get_city_info(city)\n        if not city_info:\n            return \"\"\"Fehler beim Abrufen der Wetterdaten\"\"\"\n\n        lat, lng, tmzone = city_info\n        print(f\"Latitude: {lat}, Longitude: {lng}, Timezone: {tmzone}\")\n\n        base_url = \"https://api.open-meteo.com/v1/forecast\"\n        params = {\n            \"latitude\": lat,\n            \"longitude\": lng,\n            \"current\": [\n                \"temperature_2m\",\n                \"relative_humidity_2m\",\n                \"apparent_temperature\",\n                \"wind_speed_10m\",\n                \"weather_code\",\n            ],\n            \"timezone\": tmzone,\n            \"temperature_unit\": \"celsius\",\n            \"wind_speed_unit\": \"kmh\",\n            \"precipitation_unit\": \"mm\",\n            \"forecast_days\": 1,\n        }\n\n        data = fetch_weather_data(base_url, params)\n        if isinstance(data, str):\n            return data\n\n        formatted_timestamp = format_date(data[\"current\"][\"time\"])\n        data[\"current\"][\"weather_code\"] = wmo_weather_codes[\n            str(data[\"current\"][\"weather_code\"])\n        ]\n        formatted_data = \", \".join(\n            [\n                f\"{x} ({data['current_units'][x]}) = '{data['current'][x]}'\"\n                for x in data[\"current\"].keys()\n            ]\n        ).replace(\"weather_code\", \"weather_description\")\n\n        return f\"\"\"\nGeben Sie eine Wetterbeschreibung an und geben Sie den Zeitpunkt der Daten an ({formatted_timestamp} {data['timezone_abbreviation']} in {city}):\nFügen Sie diese Daten hinzu: [{formatted_data}]\nStellen Sie sicher, dass Sie die tatsächliche Temperatur und die gefühlte Temperatur (apparent_temperature) angeben. Wandeln Sie alle Zahlen in ganze Zahlen um.\nHalten Sie die Antwort so kurz wie möglich.\"\"\"\n"},"downloads":2,"upvotes":0,"downvotes":0,"updatedAt":1726830795,"createdAt":1726830795,"user":{"id":"4b937569-583a-4bb7-ba4d-af3970bb1f96","username":"baefthde","name":"","profileImageUrl":"https://www.gravatar.com/avatar/fa91a9ecffb1b2d77cc086a9ac5538359ee3a72680e2375855f4deecd1e34694?d=mp","createdAt":1726829331}}]
+"""
+title: Wetter Deutsch
+author: baefthde
+author_url: https://github.com/baefthde/
+funding_url: https://github.com/baefthde/OpenWebUI_De_Mods/
+version: 0.1.1
+"""
+
+import os
+import requests
+import urllib.parse
+import datetime
+
+
+def get_city_info(city: str):
+    url = f"https://geocoding-api.open-meteo.com/v1/search?name={urllib.parse.quote(city)}&count=1&language=de&format=json"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        try:
+            data = response.json()["results"][0]
+            return data["latitude"], data["longitude"], data["timezone"]
+        except (KeyError, IndexError):
+            print(f"City '{city}' not found")
+            return None
+    else:
+        print(f"Daten für die Stadt konnten nicht abgerufen werden '{city}': {response.status_code}")
+        return None
+
+
+wmo_weather_codes = {
+    "0": "Klarer Himmel",
+    "1": "Überwiegend klar, teilweise bewölkt und bewölkt",
+    "2": "Überwiegend klar, teilweise bewölkt und bewölkt",
+    "3": "Überwiegend klar, teilweise bewölkt und bewölkt",
+    "45": "Nebel und Raureifnebel",
+    "48": "Nebel und Raureifnebel",
+    "51": "Nieselregen: Leichte, mäßige und dichte Intensität",
+    "53": "Nieselregen: Leichte, mäßige und dichte Intensität",
+    "55": "Nieselregen: Leichte, mäßige und dichte Intensität",
+    "56": "Eisiger Nieselregen: Leichte und dichte Intensität",
+    "57": "Eisiger Nieselregen: Leichte und dichte Intensität",
+    "61": "Regen: Leichte, mäßige und starke Intensität",
+    "63": "Regen: Leichte, mäßige und starke Intensität",
+    "65": "Regen: Leichte, mäßige und starke Intensität",
+    "66": "Gefrierender Regen: Leichte und starke Intensität",
+    "67": "Gefrierender Regen: Leichte und starke Intensität",
+    "71": "Schneefall: leichte, mäßige und starke Intensität",
+    "73": "Schneefall: leichte, mäßige und starke Intensität",
+    "75": "Schneefall: leichte, mäßige und starke Intensität",
+    "77": "Schneekörner",
+    "80": "Regenschauer: Leicht, mäßig und heftig",
+    "81": "Regenschauer: Leicht, mäßig und heftig",
+    "82": "Regenschauer: Leicht, mäßig und heftig",
+    "85": "Leichte und heftige Schneeschauer",
+    "86": "Leichte und heftige Schneeschauer",
+    "95": "Gewitter: Leicht oder mäßig",
+    "96": "Gewitter mit leichtem und starkem Hagel",
+    "99": "Gewitter mit leichtem und starkem Hagel",
+}
+
+
+def fetch_weather_data(base_url, params):
+    try:
+        response = requests.get(base_url, params=params)
+        response.raise_for_status()
+        data = response.json()
+        if "error" in data:
+            return f"Fehler beim Abrufen der Wetterdaten: {data['message']}"
+        return data
+    except requests.RequestException as e:
+        return f"Fehler beim Abrufen der Wetterdaten: {str(e)}"
+
+
+def format_date(date_str, date_format="%Y-%m-%dT%H:%M", output_format="%I:%M %p"):
+    dt = datetime.datetime.strptime(date_str, date_format)
+    return dt.strftime(output_format)
+
+
+class Tools:
+    def __init__(self):
+        self.citation = True
+        pass
+
+    def get_future_weather_week(self, city: str) -> str:
+        """
+        Holen Sie sich das Wetter für die nächste Woche für eine bestimmte Stadt.
+        :param city: Der Name der Stadt, für die das Wetter ermittelt werden soll.
+        :return: Die aktuellen Wetterinformationen oder eine Fehlermeldung.        
+        """
+        if not city:
+            return """Der Standort wurde vom Benutzer nicht definiert, daher kann das Wetter nicht bestimmt werden."""
+
+        city_info = get_city_info(city)
+        if not city_info:
+            return """Fehler beim Abrufen der Wetterdaten"""
+
+        lat, lng, tmzone = city_info
+        print(f"Latitude: {lat}, Longitude: {lng}, Timezone: {tmzone}")
+
+        base_url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lng,
+            "daily": [
+                "weather_code",
+                "temperature_2m_max",
+                "temperature_2m_min",
+                "uv_index_max",
+                "precipitation_probability_max",
+                "wind_speed_10m_max",
+            ],
+            "current": "temperature_2m",
+            "timezone": tmzone,
+            "temperature_unit": "celsius",
+            "wind_speed_unit": "kmh",
+            "precipitation_unit": "mm",
+            "forecast_days": 7,
+        }
+
+        data = fetch_weather_data(base_url, params)
+        if isinstance(data, str):
+            return data
+
+        formatted_timestamp = format_date(data["current"]["time"])
+        data["daily"]["time"][0] += " (Today)"
+
+        mapped_data = {
+            date: {
+                "weather_description": wmo_weather_codes[
+                    str(data["daily"]["weather_code"][i])
+                ],
+                "temperature_max_min": f'{data["daily"]["temperature_2m_max"][i]} {data["daily_units"]["temperature_2m_max"]} / {data["daily"]["temperature_2m_min"][i]} {data["daily_units"]["temperature_2m_min"]}',
+                "uv_index_max": f'{data["daily"]["uv_index_max"][i]} {data["daily_units"]["uv_index_max"]}',
+                "precipitation_probability_max": f'{data["daily"]["precipitation_probability_max"][i]} {data["daily_units"]["precipitation_probability_max"]}',
+                "max_wind_speed": f'{data["daily"]["wind_speed_10m_max"][i]} {data["daily_units"]["wind_speed_10m_max"]}',
+            }
+            for i, date in enumerate(data["daily"]["time"])
+        }
+
+        return f"""
+Geben Sie eine Wetterbeschreibung für die nächste Woche an und geben Sie den Zeitpunkt der Daten an ({formatted_timestamp} {data['timezone_abbreviation']} in {city}):
+Zeigen Sie für jeden dieser Tage ein Standard-Tabellenlayout an: {mapped_data}
+Fügen Sie am Ende eine Zusammenfassung der Woche in einem Satz hinzu."""
+
+    def get_current_weather(self, city: str) -> str:
+        """
+        Holen Sie sich das aktuelle Wetter für eine bestimmte Stadt.
+        :param city: Der Name der Stadt, für die das Wetter ermittelt werden soll.
+        :return: Die aktuellen Wetterinformationen oder eine Fehlermeldung.
+        """
+        if not city:
+            return """Der Standort wurde vom Benutzer nicht definiert, daher kann das Wetter nicht bestimmt werden."""
+
+        city_info = get_city_info(city)
+        if not city_info:
+            return """Fehler beim Abrufen der Wetterdaten"""
+
+        lat, lng, tmzone = city_info
+        print(f"Latitude: {lat}, Longitude: {lng}, Timezone: {tmzone}")
+
+        base_url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            "latitude": lat,
+            "longitude": lng,
+            "current": [
+                "temperature_2m",
+                "relative_humidity_2m",
+                "apparent_temperature",
+                "wind_speed_10m",
+                "weather_code",
+            ],
+            "timezone": tmzone,
+            "temperature_unit": "celsius",
+            "wind_speed_unit": "kmh",
+            "precipitation_unit": "mm",
+            "forecast_days": 1,
+        }
+
+        data = fetch_weather_data(base_url, params)
+        if isinstance(data, str):
+            return data
+
+        formatted_timestamp = format_date(data["current"]["time"])
+        data["current"]["weather_code"] = wmo_weather_codes[
+            str(data["current"]["weather_code"])
+        ]
+        formatted_data = ", ".join(
+            [
+                f"{x} ({data['current_units'][x]}) = '{data['current'][x]}'"
+                for x in data["current"].keys()
+            ]
+        ).replace("weather_code", "weather_description")
+
+        return f"""
+Geben Sie eine Wetterbeschreibung an und geben Sie den Zeitpunkt der Daten an ({formatted_timestamp} {data['timezone_abbreviation']} in {city}):
+Fügen Sie diese Daten hinzu: [{formatted_data}]
+Stellen Sie sicher, dass Sie die tatsächliche Temperatur und die gefühlte Temperatur (apparent_temperature) angeben. Wandeln Sie alle Zahlen in ganze Zahlen um.
+Halten Sie die Antwort so kurz wie möglich."""
