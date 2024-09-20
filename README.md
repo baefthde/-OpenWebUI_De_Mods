@@ -32,6 +32,9 @@ A “Workspace” menu appears at the top left, where you can create and edit mo
 
 tool-Wetter.json
 
+Kann zu jeder Stadt das aktuelle Wetter oder Wettervorhersagen für 7 Tage beziehen.
+Erfordert keinen API-Schlüssel (open-meteo.com)
+
 Umbau des vorhandenen tool-weather für Deutsche Anwendung
  - Einheiten von Fahrenheit in Celsius
  - Einheiten von mph in kmh
@@ -39,13 +42,16 @@ Umbau des vorhandenen tool-weather für Deutsche Anwendung
  - Anpassung der Ausgabetexte
  - Abruf String language vom en auf de
 
-(Conversion of the existing tool-weather for German use
+(Can get the current weather or weather forecasts for 7 days for every city.
+Does not require an API key (open-meteo.com)
+
+Conversion of the existing tool-weather for German use
  - Units from Fahrenheit to Celsius
  - Units from mph to kmh
  - Units from inches to meters
  - Adaptation of the output texts
  - Retrieval of string language from en to de)
- - 
+
 ### Funktionen (Functions)
 
 ## Autor (Authors)
