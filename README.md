@@ -24,7 +24,10 @@ Oben links erscheint ein Menü "Arbeitsbereich", dort können Modelle, Prompts, 
 
 A “Workspace” menu appears at the top left, where you can create and edit models, prompts, documents, tools and functions yourself or import or export them using a JSON file.)
 
-## Übersicht (Overview) [OpenWebUI_De_Mods](https://openwebui.com/u/baefthde/)
+## Übersicht (Overview)
+kann auch auf [[OpenWebUI_De_Mods](https://openwebui.com/u/baefthde/)](https://openwebui.com/u/baefthde/) bezogen werden.
+
+(can also be referred to [[OpenWebUI_De_Mods](https://openwebui.com/u/baefthde/)](https://openwebui.com/u/baefthde/).)
 
 ### Modelle (Models)
 ### Prompts (Prompts)
