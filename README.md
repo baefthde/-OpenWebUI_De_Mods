@@ -27,7 +27,7 @@ A “Workspace” menu appears at the top left, where you can create and edit mo
 ## Übersicht (Overview)
 kann auch auf [https://openwebui.com/u/baefthde/](https://openwebui.com/u/baefthde/) bezogen werden.
 
-(can also be referred to [https://openwebui.com/u/baefthde/](https://openwebui.com/u/baefthde/).)
+(can also be referred to [https://openwebui.com/u/baefthde/](https://openwebui.com/u/baefthde/) . )
 
 ### Modelle (Models)
 ### Prompts (Prompts)
