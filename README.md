@@ -9,7 +9,7 @@ Angepasste Änderung für OpenWebUI für den Deutschen gebrauch.
 
 Ein laufendes OpenWebUI Webinterface mit API Anbindung zu einem LLM  wie Ollama (Offline) oder OpenAI
 
-z.B. (e.g.) [https://github.com/baefthde/OpenWebUI_De](https://github.com/baefthde/OpenWebUI_De)
+z.B. [https://github.com/baefthde/OpenWebUI_De](https://github.com/baefthde/OpenWebUI_De)
 
 ## Einrichtung
 
